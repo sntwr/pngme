@@ -41,6 +41,13 @@ impl Display for ChunkError {
 }
 
 impl Chunk {
+    pub const LENGTH_FIELD_BYTES: usize = 4;
+    pub const CHUNK_TYPE_FIELD_BYTES: usize = 4;
+    pub const CRC_FIELD_BYTES: usize = 4;
+    pub const NON_DATA_FIELDS_COMBINED_BYTES: usize = Self::LENGTH_FIELD_BYTES
+        + Self::CHUNK_TYPE_FIELD_BYTES
+        + Self::CRC_FIELD_BYTES;
+
     fn crc_digest(chunk_type_slice: &[u8], data_slice: &[u8]) -> u32 {
         let mut d = CRC.digest();
         d.update(chunk_type_slice);
@@ -91,23 +98,26 @@ impl Chunk {
 impl TryFrom<&[u8]> for Chunk {
     type Error = ChunkError;
     fn try_from(v: &[u8]) -> Result<Self, Self::Error> {
-        if v.len() < 12 {
+        if v.len() < Self::NON_DATA_FIELDS_COMBINED_BYTES {
             return Err(ChunkError::BadLen);
         }
-        let length = u32::from_be_bytes(v[..4].try_into().unwrap());
-        if length != v.len() as u32 - 12 {
+        let length = u32::from_be_bytes(v[..Self::LENGTH_FIELD_BYTES].try_into().unwrap());
+        if length as usize != v.len() - Self::NON_DATA_FIELDS_COMBINED_BYTES {
             return Err(ChunkError::BadDataLen);
         }
-        let chunk_type: ChunkType = v[4..8].try_into().map_err(|e| ChunkError::ChunkType(e))?;
-        let crc_calculated = Self::crc_digest(&v[4..8], &v[8..v.len() - 4]);
-        let crc = u32::from_be_bytes(v[v.len() - 4..].try_into().unwrap());
+        let chunk_type_slice = &v[Self::LENGTH_FIELD_BYTES..Self::LENGTH_FIELD_BYTES + Self::CHUNK_TYPE_FIELD_BYTES];
+        let data_slice = &v[Self::LENGTH_FIELD_BYTES + Self::CHUNK_TYPE_FIELD_BYTES .. v.len() - Self::CRC_FIELD_BYTES];
+        let crc_slice = &v[v.len() - Self::CRC_FIELD_BYTES ..];
+        let chunk_type: ChunkType = chunk_type_slice.try_into().map_err(|e| ChunkError::ChunkType(e))?;
+        let crc_calculated = Self::crc_digest(chunk_type_slice, data_slice);
+        let crc = u32::from_be_bytes(crc_slice.try_into().unwrap());
         if crc != crc_calculated {
             return Err(ChunkError::BadCrc);
         }
         Ok(Self {
             length,
             chunk_type,
-            data: v[8..v.len()  -4].to_vec(),
+            data: data_slice.to_vec(),
             crc,
         })
     }
