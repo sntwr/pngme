@@ -1,14 +1,14 @@
-mod args;
-mod chunk;
-mod chunk_type;
-mod commands;
-mod png;
+pub mod args;
+pub mod chunk;
+pub mod chunk_type;
+pub mod commands;
+pub mod png;
 
 pub type Error = Box<dyn std::error::Error>;
 pub type Result<T> = std::result::Result<T, Error>;
 
 use clap::Parser;
-use commands::{Cli, Commands};
+use args::{Cli, Commands};
 
 fn main() -> Result<()> {
     let cli = Cli::parse();

@@ -3,7 +3,7 @@ use std::fmt::{Formatter, Display};
 use std::str::FromStr;
 
 use crate::chunk::{Chunk,ChunkError};
-use crate::chunk_type::{ChunkType, ChunkTypeError};
+use crate::chunk_type::ChunkType;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Png {
@@ -143,7 +143,7 @@ mod tests {
         Png::from_chunks(chunks)
     }
 
-    fn chunk_from_strings(chunk_type: &str, data: &str) -> Result<Chunk, ChunkTypeError> {
+    fn chunk_from_strings(chunk_type: &str, data: &str) -> Result<Chunk, crate::chunk_type::ChunkTypeError> {
         #[allow(unused_imports)]
         use std::str::FromStr;
 
