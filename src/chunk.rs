@@ -1,5 +1,5 @@
 
-use std::{fmt::{Formatter, Display}, string::FromUtf8Error};
+use std::{fmt::{Formatter, Display}, string::FromUtf8Error, error::Error};
 use crc::{Crc, CRC_32_ISO_HDLC};
 
 use crate::chunk_type::{ChunkType, ChunkTypeError};
@@ -39,6 +39,8 @@ impl Display for ChunkError {
         }
     }
 }
+
+impl Error for ChunkError {}
 
 impl Chunk {
     pub const LENGTH_FIELD_BYTES: usize = 4;

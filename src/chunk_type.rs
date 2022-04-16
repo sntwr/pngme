@@ -3,6 +3,7 @@ pub struct ChunkType([u8; 4]);
 
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
+use std::error::Error;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum ChunkTypeError {
@@ -20,6 +21,8 @@ impl Display for ChunkTypeError {
         }
     }
 }
+
+impl Error for ChunkTypeError {}
 
 impl ChunkType {
     const PROPERTY_BIT_MASK: u8 = 32u8;

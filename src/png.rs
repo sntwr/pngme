@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::fmt::{Formatter, Display};
 use std::str::FromStr;
 
@@ -5,12 +6,12 @@ use crate::chunk::{Chunk,ChunkError};
 use crate::chunk_type::{ChunkType, ChunkTypeError};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-struct Png {
+pub struct Png {
     chunks: Vec<Chunk>
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-enum PngError {
+pub enum PngError {
     BadLen,
     BadHeader,
     Chunk(ChunkError),
@@ -32,40 +33,42 @@ impl Display for PngError {
     }
 }
 
-impl Png {
-    const STANDARD_HEADER: [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10];
+impl Error for PngError {}
 
-    fn from_chunks(chunks: Vec<Chunk>) -> Png {
+impl Png {
+    pub const STANDARD_HEADER: [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10];
+
+    pub fn from_chunks(chunks: Vec<Chunk>) -> Png {
         Self {
             chunks,
         }
     }
 
-    fn append_chunk(&mut self, chunk: Chunk) {
+    pub fn append_chunk(&mut self, chunk: Chunk) {
         self.chunks.push(chunk);
     }
 
-    fn remove_chunk(&mut self, chunk_type: &str) -> Result<Chunk, PngError> {
+    pub fn remove_chunk(&mut self, chunk_type: &str) -> Result<Chunk, PngError> {
         let chunk_type = ChunkType::from_str(chunk_type).map_err(|e| PngError::Chunk(ChunkError::ChunkType(e)))?;
         let idx = self.chunks.iter().position(|x| *x.chunk_type() == chunk_type).ok_or(PngError::ChunkNotFound)?;
         Ok(self.chunks.remove(idx))        
     }
 
-    fn header(&self) -> &[u8; 8] {
+    pub fn header(&self) -> &[u8; 8] {
         &Self::STANDARD_HEADER
     }
 
-    fn chunks(&self) -> &[Chunk] {
+    pub fn chunks(&self) -> &[Chunk] {
         self.chunks.as_ref()
     }
 
-    fn chunk_by_type(&self, chunk_type: &str) -> Option<&Chunk> {
+    pub fn chunk_by_type(&self, chunk_type: &str) -> Option<&Chunk> {
         let chunk_type = ChunkType::from_str(chunk_type).ok()?;
         let idx = self.chunks.iter().position(|x| *x.chunk_type() == chunk_type)?;
         Some(&self.chunks[idx]) 
     }
 
-    fn as_bytes(&self) -> Vec<u8> {
+    pub fn as_bytes(&self) -> Vec<u8> {
         let mut res = self.header().to_vec();
         for chunk in &self.chunks {
             res.append(&mut chunk.as_bytes());
@@ -107,9 +110,10 @@ impl TryFrom<&[u8]> for Png {
 }
 impl Display for Png {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Header: {:x?}\nChunks:\n", self.header())?;
+        let num_chunks = self.chunks.len();
+        write!(f, "HEADER: {:x?}\nCHUNKS: {} chunks in file.\n", self.header(), num_chunks)?;
         for (idx, chunk) in self.chunks.iter().enumerate() {
-            write!(f, "Chunk #{:3}: {}\n", idx, chunk)?;
+            write!(f, "* CHUNK #[{:03}/{:03}]: {}\n", idx + 1, num_chunks, chunk)?;
         }
         Ok(())
     }
